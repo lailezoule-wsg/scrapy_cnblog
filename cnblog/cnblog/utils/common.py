@@ -6,6 +6,9 @@ import json
 import random
 from pathlib import Path
 from urllib.parse import urlparse
+import logging
+
+logger = logging.getLogger(__name__)
 
 from lxml import html
 
@@ -25,8 +28,8 @@ async def str_datetime(str):
         dt_aware = tz.localize(dt_naive)   # 或使用 dt_aware = dt_naive.replace(tzinfo=...)
 
         return dt_aware
-    except ValueError:
-        pass
+    except ValueError as e:
+        logger.error(f"{str} 转时间对象报错：{e}")
 
 # article 作者信息
 async def article_author(url):
@@ -45,25 +48,33 @@ async def article_info(url:str):
     extract_res = tldextract.extract(url)
     subdomain = extract_res.subdomain
     resp = None
-    async with httpx.AsyncClient() as client:
-        if subdomain == "www":
-            url_split = url.split("/")
-            postId = int(url_split[5])
-            urlName = url_split[3]
-            request_url = f"https://www.cnblogs.com/{urlName}/ajax/post-accessories?postId={postId}"
-            resp = await client.get(request_url)
-            
+    views = 0
+    try:
+        async with httpx.AsyncClient() as client:
+            if subdomain == "www":
+                url_split = url.split("/")
+                # 过滤 17726867.html
+                if "." in url_split[5]:
+                    postId = url_split[5].split(".")[0]
+                else:
+                    postId = int(url_split[5])
+                urlName = url_split[3]
+                request_url = f"https://www.cnblogs.com/{urlName}/ajax/post-accessories?postId={postId}"
+                resp = await client.get(request_url)
+                
+            else:
+                # subdomain == "news"
+                url_split = url.split("/")
+                contentId = url_split[4]
+                request_url = f"https://news.cnblogs.com/NewsAjax/GetAjaxNewsInfo?contentId={contentId}"
+                resp = await client.get(request_url)
+        resp = json.loads(resp.text)
+        if "TotalView" in resp:
+            views = resp["TotalView"]
         else:
-            # subdomain == "news"
-            url_split = url.split("/")
-            contentId = url_split[4]
-            request_url = f"https://news.cnblogs.com/NewsAjax/GetAjaxNewsInfo?contentId={contentId}"
-            resp = await client.get(request_url)
-    resp = json.loads(resp.text)
-    if "TotalView" in resp:
-        views = resp["TotalView"]
-    else:
-        views = resp["postStats"]["viewCount"]
+            views = resp["postStats"]["viewCount"]
+    except Exception as e:
+        logger.error(f"{url} 解析获取views报错：{e}")
     return views
 
 # 解析cookie字符串为字典格式

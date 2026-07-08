@@ -24,7 +24,7 @@ ROBOTSTXT_OBEY = True
 
 # Concurrency and throttling settings
 #CONCURRENT_REQUESTS = 16
-# 1. 启用 AutoThrottle 扩展
+# 1. 启用 AutoThrottle 扩展 自动限速
 AUTOTHROTTLE_ENABLED = True
 # 2. 设置初始下载延迟（可选，默认 5.0 秒）
 AUTOTHROTTLE_START_DELAY = 5.0
@@ -37,7 +37,9 @@ AUTOTHROTTLE_TARGET_CONCURRENCY = 1.0
 # CONCURRENT_REQUESTS_PER_DOMAIN = 8
 
 CONCURRENT_REQUESTS_PER_DOMAIN = 5
-DOWNLOAD_DELAY = 1
+
+DOWNLOAD_DELAY = 2
+RANDOMIZE_DOWNLOAD_DELAY = True      # 默认 True，随机化延迟
 
 
 
@@ -62,8 +64,8 @@ DOWNLOAD_DELAY = 1
 # Enable or disable downloader middlewares
 # See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
 DOWNLOADER_MIDDLEWARES = {
-#    "cnblog.middlewares.CnblogDownloaderMiddleware": 543,
-    'scrapy.downloadermiddlewares.offsite.OffsiteMiddleware': None,
+    "cnblog.middlewares.CnblogDownloaderMiddleware": 543,
+    "scrapy.downloadermiddlewares.offsite.OffsiteMiddleware": None,
 }
 
 # Enable or disable extensions
@@ -140,5 +142,5 @@ PLAYWRIGHT_LAUNCH_OPTIONS = {
 
 # (可选) 设置最大并发上下文数
 PLAYWRIGHT_MAX_CONTEXTS = 8  # [reference:6]
-# 例如只爬取列表页（深度0）和详情页（深度1
-DEPTH_LIMIT = 2  
+# 不限制
+# DEPTH_LIMIT = 0  

@@ -72,7 +72,45 @@ async def test_http(url):
     nickname = nickname_list[0].strip("") if nickname_list else None
     print("nickname::::",nickname)
 
-asyncio.run(test_http(url))
+
+async def article_info(url:str):
+    extract_res = tldextract.extract(url)
+    subdomain = extract_res.subdomain
+    resp = None
+    try:
+        async with httpx.AsyncClient() as client:
+            if subdomain == "www":
+                url_split = url.split("/")
+                # 过滤 17726867.html
+                if "." in url_split[5]:
+                    postId = url_split[5].split(".")[0]
+                else:
+                    postId = int(url_split[5])
+                urlName = url_split[3]
+                request_url = f"https://www.cnblogs.com/{urlName}/ajax/post-accessories?postId={postId}"
+                resp = await client.get(request_url)
+                
+            else:
+                # subdomain == "news"
+                url_split = url.split("/")
+                contentId = url_split[4]
+                request_url = f"https://news.cnblogs.com/NewsAjax/GetAjaxNewsInfo?contentId={contentId}"
+                resp = await client.get(request_url)
+        resp = json.loads(resp.text)
+        if "TotalView" in resp:
+            views = resp["TotalView"]
+        else:
+            views = resp["postStats"]["viewCount"]
+    except Exception:
+        views = 0
+        pass
+    print("views:::::",views)
+
+url= "https://www.cnblogs.com/InCerry/p/-/dotnet_week_26_5_1"
+# url ="https://www.cnblogs.com/tangkengz/p/20975134"
+# url = "https://www.cnblogs.com/kqdssheng/p/20977192"
+url = "https://www.cnblogs.com/wenha/p/17726867.html"
+asyncio.run(article_info(url))
 
 
 from urllib.parse import urlparse
