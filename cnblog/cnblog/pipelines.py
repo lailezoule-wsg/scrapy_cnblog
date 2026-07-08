@@ -95,6 +95,7 @@ class AsyncDataBasePipeline:
     async def open_spider(self, spider):
         """爬虫开启时，创建数据库连接池"""
         try:
+            # asyncpg 是 Python 生态中为 PostgreSQL 和 asyncio 框架设计的高性能异步数据库驱动
             self.pool = await asyncpg.create_pool(
                 **self.config,
                 min_size=5,
