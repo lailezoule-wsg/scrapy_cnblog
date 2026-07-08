@@ -1,0 +1,9 @@
+scrapy==2.16.0
+scrapy-playwright==0.0.47
+asyncpg==0.31.0
+httpx==0.28.1
+tldextract==5.3.1
+lxml==6.0.4
+pytz==2026.2
+itemadapter==0.13.1
+parsel==1.11.0
