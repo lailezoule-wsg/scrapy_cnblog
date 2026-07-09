@@ -1,5 +1,6 @@
 import scrapy
 from cnblog.items import ArticleItem
+from cnblog.core.cookie_manager import CookieManager
 
 from cnblog.utils.common import article_author,str_datetime,article_info,get_submain,get_random_cookie
 
@@ -12,8 +13,11 @@ class ArticleSpider(scrapy.Spider):
         "https://news.cnblogs.com/",
         "https://www.cnblogs.com/",
     ]
-
-    cookie = get_random_cookie()
+    # 从文件读取cookie
+    # cookie = get_random_cookie()
+    # 从redis读取cookie
+    cookieManager = CookieManager()
+    cookie = cookieManager.get_random_cookie(name)
 
     async def parse(self, response):
         url = response.url

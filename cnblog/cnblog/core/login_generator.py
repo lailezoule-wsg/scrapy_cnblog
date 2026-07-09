@@ -173,7 +173,6 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-
     user_path = os.path.dirname(os.path.abspath(__file__)) + '/user_info.js'
 
     userInfoStr = None
@@ -196,10 +195,10 @@ if __name__ == "__main__":
 
         cookie = generator.get_cookies_with_retry(max_retries=2)
 
-        from cnblog.scripts.cookie_manager import CookieManager
+        from cnblog.core.cookie_manager import CookieManager
         cookieManager = CookieManager()
         if cookie:
-            cookieManager.add_cookie('cnblog',"lailezoule",cookie)
+            cookieManager.add_cookie('article',"lailezoule",cookie)
             print("Got cookie:", cookie)
         else:
             print("Login failed")
