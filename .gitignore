@@ -4,3 +4,6 @@ __pycache__/
 *.pyc
 .env
 *.db
+logs/
+data/
+article_data.json

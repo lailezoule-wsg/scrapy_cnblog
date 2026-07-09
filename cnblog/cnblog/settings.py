@@ -23,7 +23,7 @@ ADDONS = {}
 ROBOTSTXT_OBEY = True
 
 # Concurrency and throttling settings
-#CONCURRENT_REQUESTS = 16
+CONCURRENT_REQUESTS = 6
 # 1. 启用 AutoThrottle 扩展 自动限速
 AUTOTHROTTLE_ENABLED = True
 # 2. 设置初始下载延迟（可选，默认 5.0 秒）
@@ -40,6 +40,7 @@ CONCURRENT_REQUESTS_PER_DOMAIN = 5
 
 DOWNLOAD_DELAY = 2
 RANDOMIZE_DOWNLOAD_DELAY = True      # 默认 True，随机化延迟
+DOWNLOAD_TIMEOUT = 30
 
 
 
@@ -64,6 +65,7 @@ RANDOMIZE_DOWNLOAD_DELAY = True      # 默认 True，随机化延迟
 # Enable or disable downloader middlewares
 # See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
 DOWNLOADER_MIDDLEWARES = {
+    "cnblog.middlewares.RandomUserAgentMiddleware": 400,
     "cnblog.middlewares.CnblogDownloaderMiddleware": 543,
     "scrapy.downloadermiddlewares.offsite.OffsiteMiddleware": None,
 }
@@ -74,13 +76,22 @@ DOWNLOADER_MIDDLEWARES = {
 #    "scrapy.extensions.telnet.TelnetConsole": None,
 #}
 
+EXTENSIONS = {
+    'cnblog.extensions.ItemStatsExtension.ItemStatsExtension': 500,
+}
+# 可选：开关控制（默认启用）
+ITEM_STATS_ENABLED = True
+
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
    "cnblog.pipelines.CleanPipeline": 278,
    "cnblog.pipelines.ValidatePipeline": 280,
+   "cnblog.pipelines.ArticleImagePipeline": 280,
    "cnblog.pipelines.CnblogPipeline": 300,
-   "cnblog.pipelines.AsyncDataBasePipeline": 310,
+#    "cnblog.pipelines.AsyncDataBasePipeline": 310,
+   "cnblog.pipelines.AsyncBatchDataBasePipeline": 312,
+#    "cnblog.pipelines.ArticleJsonWritePipeline": 320,
 }
 
 # Enable and configure the AutoThrottle extension (disabled by default)
@@ -116,12 +127,22 @@ POSTGRESQL_CONFIG = {
     'database': 'cnblog',
     # 'dsn': 'postgresql://user:pass@localhost:5432/db' # 也可用 DSN 字符串
 }
+"""
+DB_BATCH_SIZE 数值配置问题
+问题：如果你开启了极高的并发（比如 CONCURRENT_REQUESTS = 10），同一时刻会发出 10 个详情页请求，它们返回的顺序是乱序的。
+你没法保证先回来的 20 个请求恰好属于同一个逻辑批次。
+对策（推荐方案）：不要在此时强行按“数量”批次提交，而是按“请求 URL 指纹”或“时间窗口”提交。如果必须按数量，请务必将 batch_size 调得足够大（比如 200），
+覆盖大部分并发返回的数据，并在日志中记录 max_processed_url。
+对于这种乱序场景，使用增量更新时间戳（Upsert）比死磕“分页边界”更稳妥——因为即使断点乱了，ON CONFLICT 也能帮你自动覆盖或忽略已存在的记录
+
+CONCURRENT_REQUESTS = 1时 ： 可以和一次深度查询的数据量一致，否则导致爬取边界不清晰问题（数据碎片化）
+"""
+DB_BATCH_SIZE = 100
 
 # 【重要】启用 asyncio 支持
 TWISTED_REACTOR = 'twisted.internet.asyncioreactor.AsyncioSelectorReactor'
 
 # 日志
-
 LOG_LEVEL = 'INFO'  # 生产环境中通常建议设置为 LOG_LEVEL = 'INFO' 以减少日志量，但保留错误和警告信息
 # LOG_FILE = 'logs/cnblog.log'
 # LOG_DIR = os.path.dirname(LOG_FILE)
@@ -145,6 +166,24 @@ PLAYWRIGHT_MAX_CONTEXTS = 8  # [reference:6]
 # 不限制
 # DEPTH_LIMIT = 0  
 
+# 图片配置 固定名称 ImagePipeline会自动获取
+IMAGES_STORE = "data/cover_images"
+IMAGES_STORE_DIR = os.path.dirname(IMAGES_STORE)
+if IMAGES_STORE_DIR and not os.path.exists(IMAGES_STORE_DIR):
+    os.makedirs(IMAGES_STORE_DIR)
+
+# 3. 缩略图配置（可选，会覆盖 Pipeline 中的默认值）
+# IMAGES_THUMBS = {
+#     'small': (100, 100),
+#     'medium': (300, 300),
+#     'large': (600, 600),
+# }
+IMAGES_EXT = {'jpg', 'jpeg', 'png', 'gif'}
+# 图片最小尺寸过滤（可选） 0 是不限制
+IMAGES_MIN_WIDTH = 0
+IMAGES_MIN_HEIGHT = 0
+# 有效时间
+IMAGES_EXPIRES = 90
 
 
 

@@ -19,5 +19,6 @@ class ArticleItem(scrapy.Item):
     url = scrapy.Field()
     content = scrapy.Field()
     cover_image = scrapy.Field()
+    cover_image_local = scrapy.Field()
     created_at = scrapy.Field()
     updated_at = scrapy.Field()

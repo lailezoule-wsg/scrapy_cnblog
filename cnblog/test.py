@@ -106,7 +106,7 @@ parse_url = test_url(url)
 print(parse_url["path"].split("/"))
 
 
-user_path = r"D:\software\Pycharm202502\pythonProject\Scrapy\CnBlog\cnblog\scripts\user_info.js"
+user_path = r"D:\software\Pycharm202502\pythonProject\Scrapy\CnBlog\cnblog\cnblog\core\user_info.js"
 
 userInfo = None
 with open(user_path,'r',encoding="utf-8") as f:
@@ -114,5 +114,16 @@ with open(user_path,'r',encoding="utf-8") as f:
 
 user_cookie = json.loads(userInfo)
 print("userInfo:::",type(user_cookie),user_cookie)
+
+lt = [
+    [
+        "1","2","3"
+    ],
+    [
+        "2","2","3"
+    ]
+]
+
+
 
 

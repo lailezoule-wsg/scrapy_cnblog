@@ -21,7 +21,7 @@ class ArticleSpider(scrapy.Spider):
 
     async def parse(self, response):
         url = response.url
-        self.logger.info(f"🚀🚀🚀🚀🚀parse:🚀🚀🚀🚀🚀 :  {url}")
+        self.logger.info(f"🚀parse:🚀 :  {url}")
         parse_url = await get_submain(url)
         submain = parse_url["subdomain"]
 
@@ -69,7 +69,7 @@ class ArticleSpider(scrapy.Spider):
                                         meta={"item": item},cookies=self.cookie)
             next_url = response.xpath('//div[@class="pager"]//a[contains(@class, "current")]/following-sibling::a[1]/@href').get()
         
-        self.logger.info(f"🚀🚀🚀🚀🚀next_url:🚀🚀🚀🚀🚀:{next_url}")
+        self.logger.info(f"🚀next_url:🚀:{next_url}")
         if next_url:
             yield response.follow(next_url, callback=self.parse)
        
@@ -96,5 +96,5 @@ class ArticleSpider(scrapy.Spider):
                 item["views"] = await article_info(url)
             yield item
         except Exception as e:
-            self.logger.error(f"🔥🔥🔥parse_detail error: {response.url} 🔥🔥🔥{e}")
+            self.logger.error(f"🔥parse_detail error: {response.url} 🔥{e}")
             pass
