@@ -1,111 +1,111 @@
 # scrapy_cnblog
 
-基于 Scrapy + Playwright 的 cnblogs.com 爬虫项目，支持抓取博客文章和新闻资讯，并异步存储到 PostgreSQL 数据库。
-
-## 项目简介
-
-本项目爬取 [博客园](https://www.cnblogs.com/) 的两个板块：
-
-- **博客文章** (`www.cnblogs.com`) — 社区博主文章
-- **新闻资讯** (`news.cnblogs.com`) — 精选科技新闻
-
-每篇文章采集标题、摘要、链接、作者、阅读量、正文 HTML、封面图及时间戳，通过异步连接池写入 PostgreSQL。
+基于 Scrapy + Playwright 的博客园异步爬虫系统。抓取 [博客园](https://www.cnblogs.com/) 的社区文章与科技新闻，通过 Redis Cookie 连接池 + Playwright 自动化登录解决认证问题，全链路异步写入 PostgreSQL。
 
 ## 项目结构
 
 ```
 CnBlog/
 ├── cnblog/
-│   ├── scrapy.cfg              # Scrapy 部署配置
-│   ├── main.py                 # 脚本启动入口
-│   ├── test.py                 # 开发调试脚本
+│   ├── scrapy.cfg                    # Scrapy 部署配置
+│   ├── main.py                       # 启动入口
 │   ├── scripts/
-│   │   └── cookies.js          # Cookie 配置（JSON 数组）
+│   │   ├── cookies.js                # 静态 Cookie（JSON 数组）
+│   │   ├── user_info.js              # 登录账号配置（JSON 数组）
+│   │   ├── cookie_manager.py         # 同步 Redis Cookie 池
+│   │   ├── async_cookie_manager.py   # 异步 Redis Cookie 池
+│   │   └── login_generator.py        # Playwright 自动化登录
 │   └── cnblog/
-│       ├── settings.py         # 核心配置（并发、限速、数据库等）
-│       ├── items.py            # 数据模型定义（ArticleItem）
-│       ├── pipelines.py        # 数据清洗与异步入库管道
-│       ├── middlewares.py      # 下载中间件
+│       ├── settings.py               # 核心配置
+│       ├── items.py                  # 数据模型（ArticleItem）
+│       ├── pipelines.py              # 数据管道（清洗 → 校验 → 异步入库）
+│       ├── middlewares.py            # 下载中间件
 │       ├── utils/
-│       │   └── common.py       # 工具函数（URL 解析、异步请求、Cookie 管理）
+│       │   └── common.py             # 工具函数
 │       └── spiders/
-│           └── article.py      # 核心爬虫（ArticleSpider）
+│           └── article.py            # 核心爬虫（ArticleSpider）
 ├── requirements.txt
 └── README.md
 ```
 
-## 环境要求
+## 核心功能
 
-- Python 3.8+
-- PostgreSQL 数据库
-- Playwright 浏览器
+| 模块 | 说明 |
+|---|---|
+| **全链路异步** | `AsyncioSelectorReactor` 驱动，Spider 回调、httpx AJAX 请求、asyncpg 入库全程 `async/await` 非阻塞 |
+| **Playwright 渲染** | 集成 `scrapy-playwright`，Chromium 渲染 JS 动态页面，有头模式便于调试 |
+| **Redis Cookie 池** | 同步/异步双版本，支持多账号存储、随机选取、`SCAN + MGET` 批量迭代、生成器逐条迭代 |
+| **自动化登录** | `LoginGenerator` 模拟登录博客园，反检测（覆盖 `webdriver`、伪造浏览器指纹），多账号轮询 + 重试 + reCAPTCHA 检测 |
+| **UPSERT 去重** | `INSERT ... ON CONFLICT (url) DO UPDATE`，重复抓取自动更新 |
+| **礼貌爬取** | AutoThrottle 自适应限速 + 随机延迟 + 域名级并发控制 + 遵守 robots.txt |
 
-## 安装
+## 数据流程
 
-1. 安装 Python 依赖：
+```
+Playwright (Chromium) 渲染页面
+        │
+        ▼
+  ArticleSpider.parse()          解析博客/新闻列表页，自动翻页
+        │
+        ▼
+  parse_detail()                 提取正文，httpx 异步请求 AJAX 补全作者与阅读量
+        │                         新闻板块自动从 Redis Cookie 池获取认证
+        ▼
+  Item Pipeline
+    ├─ CleanPipeline             字段清洗
+    ├─ ValidatePipeline          数据校验
+    └─ AsyncDataBasePipeline     asyncpg 连接池写入 PostgreSQL（UPSERT 去重）
+```
+
+## 快速开始
+
+### 1. 安装依赖
 
 ```bash
 pip install -r requirements.txt
-```
-
-2. 安装 Playwright 浏览器：
-
-```bash
 playwright install
 ```
 
-3. 创建 PostgreSQL 数据库：
+### 2. 启动服务
 
-```sql
-CREATE DATABASE cnblog;
+- **PostgreSQL**：`CREATE DATABASE cnblog;`（表由 Pipeline 自动创建）
+- **Redis**：确保本地运行中（默认 `localhost:6379`）
+
+数据库连接配置位于 `settings.py` 的 `POSTGRESQL_CONFIG`。
+
+### 3. 配置认证（可选）
+
+博客文章板块无需认证，可直接抓取。新闻板块需认证 Cookie，两种方式：
+
+**方式一：自动化登录**（推荐）
+
+在 `scripts/user_info.js` 中填写账号，执行后 Cookie 自动存入 Redis：
+
+```json
+[{"username": "your_username", "password": "your_password"}]
 ```
-
-如需修改数据库连接，编辑 `cnblog/cnblog/settings.py` 中的 `POSTGRESQL_CONFIG`：
-
-```python
-POSTGRESQL_CONFIG = {
-    "host": "localhost",
-    "port": 5432,
-    "user": "postgres",
-    "password": "postgres",
-    "database": "cnblog",
-}
-```
-
-## 运行
-
-在 `cnblog/` 目录（含 `scrapy.cfg` 的目录）下执行：
 
 ```bash
-# 方式一：脚本启动
+python cnblog/scripts/login_generator.py
+```
+
+**方式二：手动配置**
+
+在 `scripts/cookies.js` 中直接粘贴 Cookie 字符串。
+
+### 4. 启动爬虫
+
+在 `cnblog/` 目录（含 `scrapy.cfg`）下执行：
+
+```bash
 python main.py
-
-# 方式二：Scrapy 命令
+# 或
 scrapy crawl article
-```
-
-## 数据处理流程
-
-```
-起始页面 --> Playwright 无头浏览器渲染
-    |
-    v
-ArticleSpider.parse()  -- 解析文章列表页（博客 + 新闻）
-    |
-    |-- 逐篇进入 parse_detail() 提取正文、作者、阅读量
-    |-- 通过 httpx 异步请求 AJAX 接口获取作者昵称和浏览量
-    |-- 自动翻页继续爬取
-    v
-Item Pipeline 管道处理
-   1. CleanPipeline      -- 去除字段空白字符
-   2. ValidatePipeline   -- 校验必填字段（title、description）
-   3. CnblogPipeline     -- 预留扩展
-   4. AsyncDataBasePipeline -- 异步连接池写入 PostgreSQL（UPSERT 去重）
 ```
 
 ## 数据库表结构
 
-爬虫自动创建 `articles` 表，无需手动建表：
+`articles` 表由 Pipeline 自动创建：
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
@@ -118,17 +118,7 @@ Item Pipeline 管道处理
 | `content` | TEXT | 正文 HTML |
 | `cover_image` | VARCHAR | 封面图链接 |
 | `created_at` | TIMESTAMP | 发布时间 |
-| `updated_at` | TIMESTAMP | 更新时间 |
-
-## 配置说明
-
-| 配置项 | 值 | 说明 |
-|---|---|---|
-| `CONCURRENT_REQUESTS_PER_DOMAIN` | 5 | 单域名并发数 |
-| `DOWNLOAD_DELAY` | 2s | 下载延迟 |
-| `AUTOTHROTTLE_ENABLED` | True | 自动限速 |
-| `PLAYWRIGHT_LAUNCH_OPTIONS` | `headless: False` | 有头模式，便于调试 |
-| `ROBOTSTXT_OBEY` | True | 遵守 robots.txt |
+| `updated_at` | TIMESTAMP | 更新时间（UPSERT 时自动刷新） |
 
 ## 依赖
 
@@ -138,14 +128,9 @@ Item Pipeline 管道处理
 | `scrapy-playwright` | 0.0.47 | Playwright 下载处理器 |
 | `asyncpg` | 0.31.0 | 异步 PostgreSQL 驱动 |
 | `httpx` | 0.28.1 | 异步 HTTP 客户端 |
+| `redis` | 6.4.0 | Redis 客户端（Cookie 连接池） |
 | `tldextract` | 5.3.1 | 域名解析 |
 | `lxml` | 6.0.4 | HTML 解析 |
 | `pytz` | 2026.2 | 时区处理 |
-| `itemadapter` | 0.13.1 | Item 字段访问抽象 |
-| `parsel` | 1.11.0 | XPath/CSS 选择器引擎 |
-
-## 注意事项
-
-- 首次运行前需在 `scripts/cookies.js` 中配置有效的 Cookie，用于新闻板块的鉴权请求。
-- 数据库表由 `AsyncDataBasePipeline` 自动创建，使用 `INSERT ... ON CONFLICT` 实现 UPSERT 去重。
-- 项目使用 asyncio 异步反应器（`AsyncioSelectorReactor`），确保不要混用同步代码。
+| `itemadapter` | 0.13.1 | Item 字段抽象 |
+| `parsel` | 1.11.0 | XPath/CSS 选择器 |
