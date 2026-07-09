@@ -1,10 +1,5 @@
-from collections.abc import AsyncIterator
-from typing import Any
 import scrapy
-import os
-from parsel import Selector
 from cnblog.items import ArticleItem
-from scrapy_playwright.page import PageMethod
 
 from cnblog.utils.common import article_author,str_datetime,article_info,get_submain,get_random_cookie
 
@@ -22,7 +17,7 @@ class ArticleSpider(scrapy.Spider):
 
     async def parse(self, response):
         url = response.url
-        self.logger.warning(f"🚀🚀🚀🚀🚀parse:🚀🚀🚀🚀🚀 :  {url}")
+        self.logger.info(f"🚀🚀🚀🚀🚀parse:🚀🚀🚀🚀🚀 :  {url}")
         parse_url = await get_submain(url)
         submain = parse_url["subdomain"]
 
@@ -70,7 +65,7 @@ class ArticleSpider(scrapy.Spider):
                                         meta={"item": item},cookies=self.cookie)
             next_url = response.xpath('//div[@class="pager"]//a[contains(@class, "current")]/following-sibling::a[1]/@href').get()
         
-        self.logger.warning(f"🚀🚀🚀🚀🚀next_url:🚀🚀🚀🚀🚀:{next_url}")
+        self.logger.info(f"🚀🚀🚀🚀🚀next_url:🚀🚀🚀🚀🚀:{next_url}")
         if next_url:
             yield response.follow(next_url, callback=self.parse)
        
@@ -88,7 +83,8 @@ class ArticleSpider(scrapy.Spider):
                 item["content"] = content
                 author_prefix_path = parse_url["path"].split("/")
                 author_full_url = f"{parse_url["domain"]}/{author_prefix_path[1]}"
-                item["nickname"] = await article_author(author_full_url)
+                nickname = await article_author(author_full_url)
+                item["nickname"] = nickname
                 item["views"] = await article_info(url)
             elif submain == "news":
                 item["content"] = response.xpath('//div[@id="news_content"]').get()
@@ -96,5 +92,5 @@ class ArticleSpider(scrapy.Spider):
                 item["views"] = await article_info(url)
             yield item
         except Exception as e:
-            self.logger.warning(f"🔥🔥🔥parse_detail error: {response.url} 🔥🔥🔥{e}")
+            self.logger.error(f"🔥🔥🔥parse_detail error: {response.url} 🔥🔥🔥{e}")
             pass

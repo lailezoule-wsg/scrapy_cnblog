@@ -35,30 +35,6 @@ async def test(url):
 url = "https://www.cnblogs.com/xuri/p/21224292/excelize_v2_11_0"
 
 # url = "https://news.cnblogs.com/n/830229/"
-async def article_info(url:str):
-    extract_res = tldextract.extract(url)
-    subdomain = extract_res.subdomain
-    resp = None
-    async with httpx.AsyncClient() as client:
-        if subdomain == "www":
-            url_split = url.split("/")
-            postId = int(url_split[5])
-            urlName = url_split[3]
-            request_url = f"https://www.cnblogs.com/{urlName}/ajax/post-accessories?postId={postId}"
-            resp = await client.get(request_url)
-            
-        else:
-            # subdomain == "news"
-            url_split = url.split("/")
-            contentId = url_split[4]
-            request_url = f"https://news.cnblogs.com/NewsAjax/GetAjaxNewsInfo?contentId={contentId}"
-            resp = await client.get(request_url)
-    resp = json.loads(resp.text)
-    if "TotalView" in resp:
-        views = resp["TotalView"]
-    else:
-        views = resp["postStats"]["viewCount"]
-    print(views)
 
 url = "https://www.cnblogs.com/lingyanspace"
 async def test_http(url):
@@ -129,5 +105,14 @@ parse_url = test_url(url)
 
 print(parse_url["path"].split("/"))
 
+
+user_path = r"D:\software\Pycharm202502\pythonProject\Scrapy\CnBlog\cnblog\scripts\user_info.js"
+
+userInfo = None
+with open(user_path,'r',encoding="utf-8") as f:
+    userInfo = f.read()
+
+user_cookie = json.loads(userInfo)
+print("userInfo:::",type(user_cookie),user_cookie)
 
 
