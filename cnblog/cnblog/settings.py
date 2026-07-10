@@ -72,7 +72,7 @@ SPIDER_MIDDLEWARES = {
 # Enable or disable downloader middlewares
 # See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
 DOWNLOADER_MIDDLEWARES = {
-    "cnblog.middlewares.RandomUserAgentMiddleware": 400,
+    # "cnblog.middlewares.RandomUserAgentMiddleware": 400,
     "cnblog.middlewares.CnblogDownloaderMiddleware": 543,
     "scrapy.downloadermiddlewares.offsite.OffsiteMiddleware": None,
 }
