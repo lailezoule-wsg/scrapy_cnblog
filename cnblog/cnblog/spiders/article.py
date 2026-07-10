@@ -65,6 +65,7 @@ class ArticleSpider(scrapy.Spider):
                     item['updated_at'] = published_at
                 # 获取详情
                 if '/n/' in item['url']:
+                    # cookie 也可通过 headers={"Cookie":self.cookie}设置，同时设置的话，cookies会覆盖headers里面的Cookie
                     yield response.follow(item['url'], callback=self.parse_detail,
                                         meta={"item": item},cookies=self.cookie)
             next_url = response.xpath('//div[@class="pager"]//a[contains(@class, "current")]/following-sibling::a[1]/@href').get()

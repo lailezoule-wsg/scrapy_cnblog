@@ -45,10 +45,14 @@ DOWNLOAD_DELAY = 2
 # 下载超时
 DOWNLOAD_TIMEOUT = 30
 
-
-
 # Disable cookies (enabled by default)
-#COOKIES_ENABLED = False
+"""
+COOKIES_ENABLED 开启后
+Scrapy 会自动跟踪服务器发送的 Cookie，并在后续请求中带回，就像浏览器一样,适合需要登录的
+禁用后，即使在 Request 中通过 headers 手动设置 Cookie 头也不会生效。
+如需为特定请求设置 Cookie，应使用 Request 的 cookies 参数
+"""
+COOKIES_ENABLED = True
 
 # Disable Telnet Console (enabled by default)
 #TELNETCONSOLE_ENABLED = False
@@ -61,9 +65,9 @@ DOWNLOAD_TIMEOUT = 30
 
 # Enable or disable spider middlewares
 # See https://docs.scrapy.org/en/latest/topics/spider-middleware.html
-#SPIDER_MIDDLEWARES = {
-#    "cnblog.middlewares.CnblogSpiderMiddleware": 543,
-#}
+SPIDER_MIDDLEWARES = {
+   "cnblog.middlewares.CnblogSpiderMiddleware": 543,
+}
 
 # Enable or disable downloader middlewares
 # See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
@@ -73,13 +77,13 @@ DOWNLOADER_MIDDLEWARES = {
     "scrapy.downloadermiddlewares.offsite.OffsiteMiddleware": None,
 }
 
-# Enable or disable extensions
+# Enable or disable extensions   加载扩展类
 # See https://docs.scrapy.org/en/latest/topics/extensions.html
 EXTENSIONS = {
     "cnblog.extensions.ItemStatsExtension.ItemStatsExtension": 500,
-    "scrapy.extensions.telnet.TelnetConsole": None,
+    # "scrapy.extensions.telnet.TelnetConsole": None,
 }
-# 可选：开关控制（默认启用）
+# 可选：开关控制（默认启用）： 扩展内部的精细化开关，用于在已加载的情况下，决定是否真正执行统计功能， 与上述EXTENSIONS 不同  ；
 ITEM_STATS_ENABLED = True
 
 # Configure item pipelines

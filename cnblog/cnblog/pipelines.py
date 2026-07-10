@@ -87,7 +87,7 @@ class ArticleImagePipeline(ImagesPipeline):
                         'index': index,
                     }
                 )
-            
+    # scrapy 会根据file_path 的返回路径是否存在缓存中 确定是否要重新下载
     def file_path(self, request, response=None, info=MediaPipeline.SpiderInfo | None, *, item=None):
         """自定义图片保存路径和文件名"""
         # 示例：按文章标题分类存储
