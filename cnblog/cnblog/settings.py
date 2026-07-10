@@ -22,24 +22,27 @@ ADDONS = {}
 # Obey robots.txt rules
 ROBOTSTXT_OBEY = True
 
+# Enable and configure the AutoThrottle extension (disabled by default)
+# See https://docs.scrapy.org/en/latest/topics/autothrottle.html
+## 性能调优
+# 启用 AutoThrottle 扩展 自动限速
+AUTOTHROTTLE_ENABLED = True
+# 设置初始下载延迟（可选，默认 5.0 秒）
+AUTOTHROTTLE_START_DELAY = 5.0
+# 设置最大下载延迟（可选）
+AUTOTHROTTLE_MAX_DELAY = 60.0
+# 设置目标并发请求数（默认 1.0）
+# 这是 AutoThrottle 努力维持的、向每个远程网站发送的平均并发请求数 越高 攻击性越强
+AUTOTHROTTLE_TARGET_CONCURRENCY = 1.0
 # Concurrency and throttling settings
 CONCURRENT_REQUESTS = 6
-# 1. 启用 AutoThrottle 扩展 自动限速
-AUTOTHROTTLE_ENABLED = True
-# 2. 设置初始下载延迟（可选，默认 5.0 秒）
-AUTOTHROTTLE_START_DELAY = 5.0
-# 3. 设置最大下载延迟（可选）
-AUTOTHROTTLE_MAX_DELAY = 60.0
-# 4. 设置目标并发请求数（默认 1.0）
-# 这是 AutoThrottle 努力维持的、向每个远程网站发送的平均并发请求数
-AUTOTHROTTLE_TARGET_CONCURRENCY = 1.0
-# 5. 你仍需要设置并发请求数的硬上限，AutoThrottle 会遵守这个限制
-# CONCURRENT_REQUESTS_PER_DOMAIN = 8
-
-CONCURRENT_REQUESTS_PER_DOMAIN = 5
-
+# 你仍需要设置并发请求数的硬上限，AutoThrottle 会遵守这个限制
+CONCURRENT_REQUESTS_PER_DOMAIN = 6
+# 默认 True，随机化延迟
+RANDOMIZE_DOWNLOAD_DELAY = True    
+# 下载延迟  
 DOWNLOAD_DELAY = 2
-RANDOMIZE_DOWNLOAD_DELAY = True      # 默认 True，随机化延迟
+# 下载超时
 DOWNLOAD_TIMEOUT = 30
 
 
@@ -72,12 +75,9 @@ DOWNLOADER_MIDDLEWARES = {
 
 # Enable or disable extensions
 # See https://docs.scrapy.org/en/latest/topics/extensions.html
-#EXTENSIONS = {
-#    "scrapy.extensions.telnet.TelnetConsole": None,
-#}
-
 EXTENSIONS = {
-    'cnblog.extensions.ItemStatsExtension.ItemStatsExtension': 500,
+    "cnblog.extensions.ItemStatsExtension.ItemStatsExtension": 500,
+    "scrapy.extensions.telnet.TelnetConsole": None,
 }
 # 可选：开关控制（默认启用）
 ITEM_STATS_ENABLED = True
@@ -94,26 +94,17 @@ ITEM_PIPELINES = {
 #    "cnblog.pipelines.ArticleJsonWritePipeline": 320,
 }
 
-# Enable and configure the AutoThrottle extension (disabled by default)
-# See https://docs.scrapy.org/en/latest/topics/autothrottle.html
-#AUTOTHROTTLE_ENABLED = True
-# The initial download delay
-#AUTOTHROTTLE_START_DELAY = 5
-# The maximum download delay to be set in case of high latencies
-#AUTOTHROTTLE_MAX_DELAY = 60
-# The average number of requests Scrapy should be sending in parallel to
-# each remote server
-#AUTOTHROTTLE_TARGET_CONCURRENCY = 1.0
-# Enable showing throttling stats for every response received:
-#AUTOTHROTTLE_DEBUG = False
-
 # Enable and configure HTTP caching (disabled by default)
 # See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html#httpcache-middleware-settings
-#HTTPCACHE_ENABLED = True
-#HTTPCACHE_EXPIRATION_SECS = 0
-#HTTPCACHE_DIR = "httpcache"
-#HTTPCACHE_IGNORE_HTTP_CODES = []
-#HTTPCACHE_STORAGE = "scrapy.extensions.httpcache.FilesystemCacheStorage"
+"""
+HTTP 缓存中间件（HttpCacheMiddleware）就像一个内置的“数据仓库”，可以存储已请求页面的响应。
+开启后，再次请求相同的 URL 时，会直接从缓存中读取数据，避免重复下载，大幅提升开发调试的效率。
+"""
+HTTPCACHE_ENABLED = True
+HTTPCACHE_EXPIRATION_SECS = 4 * 60 * 60  # 4h
+HTTPCACHE_DIR = "httpcache"
+HTTPCACHE_IGNORE_HTTP_CODES = [404,500]
+HTTPCACHE_STORAGE = "scrapy.extensions.httpcache.FilesystemCacheStorage"
 
 # Set settings whose default value is deprecated to a future-proof value
 FEED_EXPORT_ENCODING = "utf-8"
@@ -179,11 +170,11 @@ if IMAGES_STORE_DIR and not os.path.exists(IMAGES_STORE_DIR):
 #     'large': (600, 600),
 # }
 IMAGES_EXT = {'jpg', 'jpeg', 'png', 'gif'}
-# 图片最小尺寸过滤（可选） 0 是不限制
+# 图片最小尺寸过滤（可选） 0 ：不限制
 IMAGES_MIN_WIDTH = 0
 IMAGES_MIN_HEIGHT = 0
-# 有效时间
-IMAGES_EXPIRES = 90
+# 有效时间 (每次ImagesPipeline下载图片前执行清理)
+IMAGES_EXPIRES = 2
 
 
 
