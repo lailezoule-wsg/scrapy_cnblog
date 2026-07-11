@@ -46,7 +46,7 @@ class CleanPipeline:
         # adapter.field_name():以item管道定义的原始数据
         for field,value in adapter.items():
             if isinstance(value,str):
-                adapter[field] = value.strip("")
+                adapter[field] = value.strip()
         # 可以在此处加验证 或者单独一个类
         return item
 

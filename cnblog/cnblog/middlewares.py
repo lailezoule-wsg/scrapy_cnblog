@@ -4,8 +4,10 @@
 # https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 import random
 import logging
+import time
 
 from scrapy import signals
+from cnblog.core.cookie_manager import CookieManager
 
 # useful for handling different item types with a single interface
 from itemadapter import ItemAdapter
@@ -163,6 +165,61 @@ class RandomUserAgentMiddleware:
         网络超时（TimeoutError）、连接拒绝（ConnectionRefusedError）、DNS 解析失败、SSL 错误等
         """
         pass
+
+class CookieRefreshMiddleware():
+    """Cookie 自动刷新中间件"""
+    def __init__(self):
+        self.cookie_manager = CookieManager()
+        self.cookie = None
+        self.last_refresh_time = 0
+        self.refresh_interval = 1800  # 30分钟
+        self._refresh_cookie()
+    
+    def _refresh_cookie(self):
+        """刷新 Cookie"""
+        new_cookie = self.cookie_manager.get_random_cookie('cnblogs')
+        if new_cookie:
+            self.cookie = new_cookie
+            self.last_refresh_time = time.time()
+            return True
+        return False
+    
+    def _should_refresh(self):
+        """判断是否需要刷新"""
+        return time.time() - self.last_refresh_time > self.refresh_interval
+    
+    def process_request(self, request, spider):
+        """在请求发出前注入 Cookie"""
+        # 检查是否需要刷新
+        if self._should_refresh():
+            self._refresh_cookie()
+            spider.logger.info("🍪 Cookie 已自动刷新（中间件）")
+        
+        # 如果请求没有显式指定 cookies，则使用全局 Cookie
+        if self.cookie and not request.meta.get('skip_cookie'):
+            request.cookies.update(self.cookie)
+        
+        return None
+    
+    def process_response(self, request, response, spider):
+        """检查响应是否被重定向到登录页"""
+        if self._is_login_redirect(response):
+            spider.logger.warning(f"⚠️ 检测到登录重定向: {response.url}")
+            # 刷新 Cookie
+            if self._refresh_cookie():
+                # 重试请求
+                new_request = request.replace(
+                    cookies=self.cookie,
+                    dont_filter=True,
+                    meta={**request.meta, 'retry_count': request.meta.get('retry_count', 0) + 1}
+                )
+                return new_request
+        return response
+    
+    def _is_login_redirect(self, response):
+        """判断是否被重定向到登录页"""
+        login_urls = ['signin', 'login', 'account']
+        return any(url in response.url for url in login_urls) and response.status in [301, 302, 303, 307]
 
 # class ProxyMiddleware:
 #     """代理中间件"""

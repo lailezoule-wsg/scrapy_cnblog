@@ -1,12 +1,14 @@
 import scrapy
 from cnblog.items import ArticleItem
 from cnblog.core.cookie_manager import CookieManager
+from cnblog.spiders.base_spider import BaseParseSpider
 
 from cnblog.utils.common import article_author,str_datetime,article_info,get_submain,get_random_cookie
 
 
-class ArticleSpider(scrapy.Spider):
+class ArticleSpider(BaseParseSpider):
     name = "article"
+    # 完整域名；也可主域名，但需要重写部分方法，也可通过中间件处理
     allowed_domains = ["www.cnblogs.com","news.cnblogs.com"]
     
     start_urls = [
@@ -97,5 +99,10 @@ class ArticleSpider(scrapy.Spider):
                 item["views"] = await article_info(url)
             yield item
         except Exception as e:
-            self.logger.error(f"🔥parse_detail error: {response.url} 🔥{e}")
-            pass
+            # 记录详细错误信息
+            self.logger.error(
+                f"❌ 解析详情页失败: {response.url}\n"
+                f"  错误类型: {type(e).__name__}\n"
+                f"  错误信息: {str(e)}"
+            )
+            

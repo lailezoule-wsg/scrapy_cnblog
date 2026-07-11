@@ -37,7 +37,8 @@ async def article_author(url):
     url = f"{url}/ajax/news"
     async with httpx.AsyncClient() as client:
         resp = await client.get(url)
-
+    if not resp:
+        return ""
     ele = html.fromstring(html=resp.text)
     nickname_list = ele.xpath('//div[@id="profile_block"]/a[1]/text()')
     nickname = nickname_list[0].strip() if nickname_list else None
