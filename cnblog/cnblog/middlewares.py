@@ -7,7 +7,7 @@ import logging
 import time
 
 from scrapy import signals
-from cnblog.core.cookie_manager import CookieManager
+from cnblog.core.async_cookie_manager import AsyncCookieManager
 
 # useful for handling different item types with a single interface
 from itemadapter import ItemAdapter
@@ -83,6 +83,10 @@ class CnblogDownloaderMiddleware:
         # - or return a Request object
         # - or raise IgnoreRequest: process_exception() methods of
         #   installed downloader middleware will be called
+        
+        log_str = f'🚀🚀🚀 发出的请求： User-Agent:{request.headers["User-Agent"]}'
+        # log_str += f'；cookies:{request.cookies}'
+        spider.logger.warning(log_str)
         return None
 
     def process_response(self, request, response, spider):
@@ -151,7 +155,7 @@ class RandomUserAgentMiddleware:
     ]
     def process_request(self,request,spider):
         request.headers["User-Agent"] = random.choice(self.USER_AGENTS)
-        # spider.logger.warning(f"🚀🚀🚀Final request headers: {request.headers.to_string().decode()}")
+        spider.logger.warning(f"🚀🚀🚀 设置请求User-Agent: {request.headers.to_string().decode()}")
 
     def process_response(self,request,response,spider):
         """
@@ -159,7 +163,7 @@ class RandomUserAgentMiddleware:
         """
         return response
 
-    def process_exception(self,request,response,spider):
+    def process_exception(self,request,exception,spider):
         """
         只处理底层网络/协议异常，而不是应用层的状态码
         网络超时（TimeoutError）、连接拒绝（ConnectionRefusedError）、DNS 解析失败、SSL 错误等
@@ -169,15 +173,20 @@ class RandomUserAgentMiddleware:
 class CookieRefreshMiddleware():
     """Cookie 自动刷新中间件"""
     def __init__(self):
-        self.cookie_manager = CookieManager()
+        self.cookie_manager = AsyncCookieManager()
         self.cookie = None
         self.last_refresh_time = 0
         self.refresh_interval = 1800  # 30分钟
         self._refresh_cookie()
     
-    def _refresh_cookie(self):
+    def _refresh_cookie(self,spider = None):
         """刷新 Cookie"""
-        new_cookie = self.cookie_manager.get_random_cookie('cnblogs')
+        if spider:
+            name = spider.name
+            spider.logger.warning(f"🍪🍪刷新cookies:::{spider.name}")
+        else:
+            name = "article"
+        new_cookie = self.cookie_manager.get_random_cookie(name)
         if new_cookie:
             self.cookie = new_cookie
             self.last_refresh_time = time.time()
@@ -192,12 +201,13 @@ class CookieRefreshMiddleware():
         """在请求发出前注入 Cookie"""
         # 检查是否需要刷新
         if self._should_refresh():
-            self._refresh_cookie()
-            spider.logger.info("🍪 Cookie 已自动刷新（中间件）")
+            self._refresh_cookie(spider)
+            # spider.logger.info("🍪 Cookie 已自动刷新（中间件）")
         
         # 如果请求没有显式指定 cookies，则使用全局 Cookie
         if self.cookie and not request.meta.get('skip_cookie'):
-            request.cookies.update(self.cookie)
+            spider.logger.info("🍪 Cookie 更新成功")
+            # request.cookies.update(self.cookie)
         
         return None
     
@@ -206,7 +216,7 @@ class CookieRefreshMiddleware():
         if self._is_login_redirect(response):
             spider.logger.warning(f"⚠️ 检测到登录重定向: {response.url}")
             # 刷新 Cookie
-            if self._refresh_cookie():
+            if self._refresh_cookie(spider):
                 # 重试请求
                 new_request = request.replace(
                     cookies=self.cookie,

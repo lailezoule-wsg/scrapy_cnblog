@@ -73,7 +73,10 @@ SPIDER_MIDDLEWARES = {
 # See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
 DOWNLOADER_MIDDLEWARES = {
     "cnblog.middlewares.RandomUserAgentMiddleware": 400,
-    "cnblog.middlewares.CnblogDownloaderMiddleware": 543,
+    "cnblog.middlewares.CookieRefreshMiddleware": 420,
+    "cnblog.middlewares.CnblogDownloaderMiddleware": 530,
+    # OffsiteMiddleware 内部使用 urlparse(link.url).hostname 提取域名，
+    # 然后与 allowed_domains 列表中的域名进行精确字符串匹配
     "scrapy.downloadermiddlewares.offsite.OffsiteMiddleware": None,
 }
 

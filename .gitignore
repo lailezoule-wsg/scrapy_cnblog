@@ -8,3 +8,4 @@ logs/
 data/
 article_data.json
 .scrapy/
+**/user_info.js
