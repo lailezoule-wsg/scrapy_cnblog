@@ -78,8 +78,8 @@ class ArticleImagePipeline(ImagesPipeline):
         for index, url in enumerate(cover_image):
             if not url:
                 continue
-            if url.startswith("//"):
-                url = f"https:{url}"
+            # if url.startswith("//"):
+            #     url = f"https:{url}"
             yield scrapy.Request(
                     url,
                     meta={
